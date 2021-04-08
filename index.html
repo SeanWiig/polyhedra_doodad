@@ -8,7 +8,6 @@
     padding: 0;
     margin: auto;
     display: block;
-    width: 80%;
     height: 80%;
     position: absolute;
     top: 0;
@@ -38,6 +37,7 @@
 
   function main() {
     const canvas = document.querySelector('#c');
+    canvas.width = canvas.height;
     const renderer = new THREE.WebGLRenderer({canvas});
     const width = renderer.domElement.clientWidth/2;
     const height = renderer.domElement.clientHeight/2;
