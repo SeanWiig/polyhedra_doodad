@@ -10,13 +10,17 @@ void main() {
   view_normal_vector = normalMatrix * normalize(normal);
 }
 `;
+
 const fragmentSolidShader = `
 uniform float uOpacity;
 uniform float uBright;
 
 varying vec3 view_normal_vector;
 
+// precompute this at compile time
 const float cos30 = cos(radians(30.));
+
+// colors to use
 const vec3 col1 = vec3(1.0,1.0,0.0);
 const vec3 col2 = vec3(0.5,0.0,0.6);
 const vec3 col3 = vec3(0.0,0.4,0.4);
@@ -33,7 +37,7 @@ void main() {
   nv_color += col3 * nv_tripoint.b;
   nv_color += col4 * nv.z * nv.z;
 
-  // saturate
+  // saturate slightly
   float c_min = min(nv_color.r,min(nv_color.g,nv_color.b));
   nv_color -= 0.4 * c_min;
   nv_color = normalize(nv_color);
@@ -43,11 +47,10 @@ void main() {
   float rim = 1.-sqrt(sqrt(1. - dist * dist));
   nv_color += rim;
 
-  // bright
-  // nv_color = vec3(0.,0.,0.);
+  // apply brightness value
   nv_color += uBright;
 
-  // apply opacity
+  // apply opacity value
   gl_FragColor = vec4(nv_color,uOpacity);
 }
 `;
@@ -59,45 +62,45 @@ void main() {
   vec3 nv = normalize(view_normal_vector);
   vec3 nv_color = nv * 0.5 + 0.5;
 
-  // add rim highlight
-  float dist = min(1.,1.0*length(nv.xy));
-  float rim = 1.-sqrt(sqrt(sqrt(1. - dist * dist)));
-  nv_color += rim;
+  // opacity fades to zero when normal faces camera
+  float opacity = uOpacity * (1.-nv.z);
 
-  gl_FragColor = vec4(nv_color,uOpacity);
+  gl_FragColor = vec4(nv_color,opacity);
 }
 `;
 
 function group(mesh, radius) {
   const g = new THREE.Group();
+
   g.solid = new THREE.Mesh(mesh, new THREE.ShaderMaterial({
     uniforms: {
       uOpacity: { value: 0.5 },
       uBright: { value: 0.5 }
     },
     vertexShader,
-    fragmentShader: fragmentSolidShader
+    fragmentShader: fragmentSolidShader,
+    transparent: true
   }));
-  g.solid.material.transparent = true;
 
   g.sphere = new THREE.Mesh(
     new THREE.SphereGeometry(radius, 64, 64),
     new THREE.ShaderMaterial({
-      uniforms: { uOpacity: { value: 1.0 } },
+      uniforms: { uOpacity: { value: .5 } },
       vertexShader,
-      fragmentShader: fragmentSphereShader
+      fragmentShader: fragmentSphereShader,
+      transparent: true,
+      depthWrite: false
     })
   )
-  g.sphere.material.transparent = true;
-  g.sphere.material.depthWrite = false;
 
   g.wire = new THREE.LineSegments(
     new THREE.EdgesGeometry(mesh), 
-    new THREE.LineBasicMaterial({color: 0x664455})
+    new THREE.LineBasicMaterial({
+      color: 0x664455,
+      transparent: true
+    })
   );
-  g.wire.material.transparent = true;
-  // g.solid.position.x = 3;
-  // g.sphere.position.x = -3;
+
   g.add(g.solid);
   g.add(g.sphere);
   g.add(g.wire);
@@ -112,7 +115,6 @@ function main() {
   const height = renderer.domElement.clientHeight;
   renderer.setSize(width,height, false);
 
-  const aspect = width / height;
   const camera = new THREE.OrthographicCamera(-7,7,7,-7,0.1,100);
   camera.position.z = 50;
   const scene = new THREE.Scene();
@@ -149,7 +151,7 @@ function main() {
     t2 = (t1 + 0.5) % 1;
 
     setScale(cube.solid, Math.pow(3,cubeFitOffset+scaleOffset+t2-0.5));
-    setScale(cube.wire, 0.98*Math.pow(3,cubeFitOffset+scaleOffset+t1));
+    setScale(cube.wire, 0.97*Math.pow(3,cubeFitOffset+scaleOffset+t1));
     setScale(cube.sphere, Math.pow(3,cubeFitOffset+scaleOffset+t1));
     setScale(octa.solid, Math.pow(3,scaleOffset+t1-1));
     setScale(octa.wire, 0.98* Math.pow(3,scaleOffset+t2-0.5));
@@ -167,6 +169,7 @@ function main() {
     cube.solid.material.uniforms.uBright.value = Math.max(0.,Math.min(1,1-2*t2));
     cube.sphere.material.uniforms.uOpacity.value = Math.min(t1*0.3,0.15-t1*0.2);
     cube.wire.material.opacity = Math.min(1,2-2*t1);
+    
     octa.solid.material.uniforms.uOpacity.value = Math.min(1,2-2*t1);
     octa.solid.material.uniforms.uBright.value = Math.max(0.,Math.min(1,1-2*t1));
     octa.sphere.material.uniforms.uOpacity.value = Math.min(t2*0.3,0.15-t2*0.2);
@@ -175,8 +178,11 @@ function main() {
     if (t < 3) {
       octa.wire.material.opacity = 0;
     }
-    if (t < 2) {
+    if (t< 2) {
       octa.sphere.material.uniforms.uOpacity.value = 0;
+    }
+    if (t < 0) {
+      setScale(cube.wire,0.1)
     }
     tDelay1 = Math.max(0, time - 2.5);
     tDelay2 = Math.max(0, time - 10);
