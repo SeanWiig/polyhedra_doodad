@@ -14,9 +14,11 @@ const mat4 cols = mat4(
   0.6,0.3,0.8,0.0
 );
 
-// consts for computing triangular angles from x, y coords
-const vec2 trig_consts1 = vec2(sqrt(3.)/2., -0.5);
-const vec2 trig_consts2 = vec2(-sqrt(3.)/2., -0.5);
+const mat3 trig_consts = mat3(
+  0.0,sqrt(.75),-sqrt(.75),
+  1.0, -0.5, -0.5,
+  0.0, 0.0, 0.0
+);
 
 const vec3 ones = vec3(1.0);
 
@@ -26,7 +28,7 @@ void main() {
   vec3 nv = normalize(normalMatrix * normalize(normal));
   
   // apply color gradients in three directions and at center
-  vec4 nv_tripoint = max(vec4(nv.y, dot(nv.xy, trig_consts1), dot(nv.xy, trig_consts2), nv.z*nv.z), 0.);
+  vec4 nv_tripoint = max(vec4(trig_consts * nv, nv.z*nv.z), 0.);
 
   vec3 nv_color = (cols * nv_tripoint).rgb;
 
@@ -72,14 +74,16 @@ varying vec3 view_normal_vector;
 uniform float uOpacity;
 
 // consts for computing triangular angles from x, y coords
-const vec2 trig_consts1 = vec2(sqrt(3.)/2., -0.5);
-const vec2 trig_consts2 = vec2(-sqrt(3.)/2., -0.5);
-
+const mat3 trig_consts = mat3(
+  0.0,sqrt(.75),-sqrt(.75),
+  1.0, -0.5, -0.5,
+  0.0, 0.0, 0.0
+);
 void main() {
   vec3 nv = normalize(view_normal_vector);
 
   // apply color gradients in three directions and at center
-  vec3 nv_color = vec3(nv.y, dot(nv.xy, trig_consts1), dot(nv.xy, trig_consts2)) * 0.5 + 0.5;
+  vec3 nv_color = trig_consts * nv * 0.5 + 0.5;
 
   // opacity fades to zero when normal faces camera
   float opacity = uOpacity * (1.0-nv.z);
@@ -164,10 +168,13 @@ function main() {
     obj.scale.fromArray([scale,scale,scale])
   };
 
+  const period = 8.0;
+  const freq = 1.0 / period;
+
   function render(time) {
     time = time * 0.001;
     t = time - 5;
-    t1 = t * 0.125 % 1;
+    t1 = t * freq % 1;
     t2 = (t1 + 0.5) % 1;
 
     setScale(cube.solid, Math.pow(3,cubeFitOffset+scaleOffset+t2-0.5));
@@ -195,18 +202,18 @@ function main() {
     octa.sphere.material.uniforms.uOpacity.value = Math.min(t2*0.3,0.2-t2*0.25);
     octa.wire.material.opacity = Math.min(2*t2,2-2*t2);
 
-    if (t < 4) {
+    if (t < period * 0.5) {
       octa.wire.material.opacity = 0;
       octa.sphere.material.uniforms.uOpacity.value = 0;
     }
     tDelay1 = Math.max(0, time - 2.5);
     tDelay2 = Math.max(0, time - 10);
-    tSlowStart1 = tDelay1 / (1 + 20/tDelay1);
+    tSlowStart1 = tDelay1 / (1 + 20./tDelay1 + tDelay1/5.);
     tSlowStart2 = tDelay2 / (1 + 70/tDelay2);
-    rotator.rotation.x = -0.9553 + tSlowStart2 * 0.75;
-    rotator.rotation.y =  tSlowStart2 * 0.25;
-    rotator.rotation.z = Math.PI/4 + tSlowStart2 * 0.5;
-    camera.rotation.z = tSlowStart1 / (1+(tDelay1*tDelay1*0.01));
+    rotator.rotation.x = -0.9553 + tSlowStart2 * 0.4;
+    rotator.rotation.y =  tSlowStart2 * 0.41;
+    rotator.rotation.z = Math.PI/4 + tSlowStart2 * 0.1;
+    camera.rotation.z = tSlowStart1;
 
     setScale(rotator, 1-(1/(1+(time))));
 
