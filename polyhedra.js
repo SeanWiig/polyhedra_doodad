@@ -6,13 +6,12 @@ uniform float uBright;
 
 varying vec4 fragColor;
 
-// colors to use
 const mat4 cols = mat4(
-  1.0,1.0,0.0,0.0,
-  0.5,0.0,0.6,0.0,
-  0.0,0.4,0.4,0.0,
-  0.6,0.3,0.8,0.0
-);
+  150.0,68.0,88.0,0.0,
+  138.,99.0,156.0,0.0,
+  246.0,183.0,106.0,0.0,
+  70.0,50.0,81.0,0.0
+) / 256.;
 
 const mat3 trig_consts = mat3(
   0.0,sqrt(.75),-sqrt(.75),
@@ -34,14 +33,14 @@ void main() {
 
   // saturate slightly
   float c_min = min(nv_color.r,min(nv_color.g,nv_color.b));
-  nv_color -= 0.3 * c_min;
-  nv_color = normalize(nv_color);
+  nv_color -= 0.5 * c_min;
+  // nv_color = normalize(nv_color);
 
   // add edge glint
-  nv_color += 1.-sqrt(nv.z);
+  nv_color += 1.-pow(nv.z,0.1);
 
   // apply brightness value
-  nv_color = mix(nv_color, ones, uBright);
+  nv_color = mix(nv_color, ones, smoothstep(0.,1.,uBright));
 
   // apply opacity value
   fragColor.rgba = vec4(nv_color.xyz,uOpacity);
@@ -142,7 +141,7 @@ function main() {
   const camera = new THREE.OrthographicCamera(-7,7,7,-7,0.1,100);
   camera.position.z = 50;
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x442233);
+  scene.background = new THREE.Color(0x463251);
 
   const octa = group(new THREE.OctahedronGeometry(1),1);
   const cube = group(new THREE.BoxGeometry(1,1,1),Math.sqrt(3)/2);
