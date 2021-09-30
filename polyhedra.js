@@ -47,6 +47,27 @@ void main() {
 }
 `;
 
+const vertexGlassyGlintShader = `
+uniform float uOpacity;
+
+varying vec4 fragColor;
+
+const vec3 glintDirection = normalize(vec3(0.5,0.3,0.1));
+
+void main() {
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+
+  vec3 nv = normalize(normalMatrix * normalize(normal));
+
+  float facing_light = max(0.0, dot(nv, glintDirection));
+
+  float glint = uOpacity * pow(facing_light, 16.0);
+
+  // apply opacity value
+  fragColor.rgba = vec4(1.,1.,1.,glint);
+}
+`;
+
 const fragmentSolidShader = `
 varying vec4 fragColor;
 
@@ -96,10 +117,19 @@ function group(mesh, radius) {
 
   g.solid = new THREE.Mesh(mesh, new THREE.ShaderMaterial({
     uniforms: {
-      uOpacity: { value: 0.5 },
-      uBright: { value: 0.5 }
+      uOpacity: { value: 0.0 },
+      uBright: { value: 1.0 }
     },
     vertexShader: vertexSolidShader,
+    fragmentShader: fragmentSolidShader,
+    transparent: true
+  }));
+
+  g.glassy = new THREE.Mesh(mesh, new THREE.ShaderMaterial({
+    uniforms: {
+      uOpacity: { value: 0.0 }
+    },
+    vertexShader: vertexGlassyGlintShader,
     fragmentShader: fragmentSolidShader,
     transparent: true
   }));
@@ -107,7 +137,7 @@ function group(mesh, radius) {
   g.sphere = new THREE.Mesh(
     new THREE.SphereGeometry(radius, 64, 64),
     new THREE.ShaderMaterial({
-      uniforms: { uOpacity: { value: 1.0 } },
+      uniforms: { uOpacity: { value: 0.0 } },
       vertexShader: vertexSphereShader,
       fragmentShader: fragmentSphereShader,
       transparent: true,
@@ -125,6 +155,7 @@ function group(mesh, radius) {
   );
 
   g.add(g.solid);
+  g.add(g.glassy);
   g.add(g.sphere);
   g.add(g.wire);
   return g;
@@ -178,28 +209,34 @@ function main() {
 
     setScale(cube.solid, Math.pow(3,cubeFitOffset+scaleOffset+t2-0.5));
     setScale(cube.wire, Math.pow(3,cubeFitOffset+scaleOffset+t1));
+    setScale(cube.glassy, Math.pow(3,cubeFitOffset+scaleOffset+t1));
     setScale(cube.sphere, Math.pow(3,cubeFitOffset+scaleOffset+t1));
     setScale(octa.solid, Math.pow(3,scaleOffset+t1-1));
     setScale(octa.wire, Math.pow(3,scaleOffset+t2-0.5));
+    setScale(octa.glassy, Math.pow(3,scaleOffset+t2-0.5));
     setScale(octa.sphere, Math.pow(3,scaleOffset+t2-0.5));
     
     state = t1 < 0.5;
     cube.solid.renderOrder = 1+2*state;
     cube.wire.renderOrder = 2+2*!state;
+    cube.glassy.renderOrder = 2+2*!state;
     octa.solid.renderOrder = 1+2*!state;
     octa.wire.renderOrder = 2+2*state;
+    octa.glassy.renderOrder = 2+2*state;
     cube.sphere.renderOrder = 0;
     octa.sphere.renderOrder = 0;
     
     cube.solid.material.uniforms.uOpacity.value = Math.min(1,2-2*t2);
-    cube.solid.material.uniforms.uBright.value = Math.max(0.,Math.min(1,1-2*t2));
+    cube.solid.material.uniforms.uBright.value = Math.max(0.,1-2*t2);
     cube.sphere.material.uniforms.uOpacity.value = Math.min(t1*0.3,0.2-t1*0.25);
     cube.wire.material.opacity = Math.min(2*t1,2-2*t1);
+    cube.glassy.material.uniforms.uOpacity.value = Math.min(t1,1-t1);
     
     octa.solid.material.uniforms.uOpacity.value = Math.min(1,2-2*t1);
-    octa.solid.material.uniforms.uBright.value = Math.max(0.,Math.min(1,1-2*t1));
+    octa.solid.material.uniforms.uBright.value = Math.max(0.,1-2*t1);
     octa.sphere.material.uniforms.uOpacity.value = Math.min(t2*0.3,0.2-t2*0.25);
     octa.wire.material.opacity = Math.min(2*t2,2-2*t2);
+    octa.glassy.material.uniforms.uOpacity.value = Math.min(t2,1-t2);
 
     if (t < period * 0.5) {
       octa.wire.material.opacity = 0;
