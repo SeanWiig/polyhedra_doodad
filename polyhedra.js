@@ -138,7 +138,7 @@ function main() {
   const height = renderer.domElement.clientHeight;
   renderer.setSize(width,height, false);
 
-  const camera = new THREE.OrthographicCamera(-7,7,7,-7,0.1,100);
+  const camera = new THREE.PerspectiveCamera(20, width/height,1,1000)
   camera.position.z = 50;
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x463251);
@@ -214,8 +214,7 @@ function main() {
     rotator.rotation.z = Math.PI/4 + tSlowStart2 * 0.1;
     camera.rotation.z = tSlowStart1;
 
-    setScale(rotator, 1-(1/(1+(time))));
-
+    rotator.position.z = -1/(time*0.03);
     renderer.render(scene, camera);
     requestAnimationFrame(render);
   }
