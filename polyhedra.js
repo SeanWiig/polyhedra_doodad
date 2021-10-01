@@ -132,7 +132,8 @@ function group(mesh, radius) {
     },
     vertexShader: vertexGlassyGlintShader,
     fragmentShader: fragmentSolidShader,
-    transparent: true
+    transparent: true,
+    depthWrite: false
   }));
 
   g.sphere = new THREE.Mesh(
