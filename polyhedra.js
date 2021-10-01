@@ -48,6 +48,7 @@ void main() {
 `;
 
 const vertexGlassyGlintShader = `
+#define PI 3.1415926538
 uniform float uOpacity;
 
 varying vec4 fragColor;
@@ -59,9 +60,9 @@ void main() {
 
   vec3 nv = normalize(normalMatrix * normalize(normal));
 
-  float facing_light = max(0.0, dot(nv, glintDirection));
+  float facing_light = max(0.0, dot(nv, glintDirection) - 0.01);
 
-  float glint = uOpacity * pow(facing_light, 16.0);
+  float glint = sin(uOpacity * PI) * pow(facing_light, 16.0) * 0.1;
 
   // apply opacity value
   fragColor.rgba = vec4(1.,1.,1.,glint);
@@ -202,7 +203,7 @@ function main() {
   const freq = 1.0 / period;
 
   function render(time) {
-    time = time * 0.001;
+    time = time * 0.0012;
     t = time - 5;
     t1 = t * freq % 1;
     t2 = (t1 + 0.5) % 1;
